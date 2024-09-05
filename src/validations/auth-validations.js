@@ -29,8 +29,12 @@ const loginSchema = Joi.object({
 
 const resetPasswordSchema = Joi.object({
   newPassword: Joi.string()
-    .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
-    .required(),
+    .pattern(new RegExp("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,30}$"))
+    .required()
+    .messages({
+      "string.pattern.base":
+        "Password must be at least 8 characters long and include at least one letter and one number.",
+    }),
 });
 
 module.exports = {

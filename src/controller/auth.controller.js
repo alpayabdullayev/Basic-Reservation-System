@@ -1,8 +1,10 @@
-
 const userModel = require("../model/user.model");
 const sendMail = require("../utils/sendMail");
 const bcrypt = require("bcrypt");
-const { generateAccessToken, generateRefreshToken } = require("../utils/generate-token");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+} = require("../utils/generate-token");
 const { cookieOptions } = require("../utils/cookieOptions");
 const logger = require("../utils/logger");
 
@@ -13,7 +15,9 @@ const register = async (req, res, next) => {
     const userExist = await userModel.findOne({ email });
 
     if (userExist) {
-      logger.warn(`Register attempt failed. User with email ${email} already exists.`)
+      logger.warn(
+        `Register attempt failed. User with email ${email} already exists.`
+      );
       return res.status(409).json({ message: "User already exists" });
     }
 
@@ -26,10 +30,12 @@ const register = async (req, res, next) => {
     ${process.env.CLIENT_URL}/verify-email?token=${newUser.emailVerificationToken}`;
     await sendMail(newUser.email, "Please verify your email", emailText);
 
-    res.status(201).json({ message: "User created successfully", user: newUser });
-    logger.info(`User ${username} created successfully`)
+    res
+      .status(201)
+      .json({ message: "User created successfully", user: newUser });
+    logger.info(`User ${username} created successfully`);
   } catch (err) {
-    logger.error(`Error in register ${err.message}`)
+    logger.error(`Error in register ${err.message}`);
     next(err);
   }
 };
@@ -78,7 +84,7 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await userModel.findOne({ email }).select('+password')
+    const user = await userModel.findOne({ email }).select("+password");
 
     if (!user) {
       logger.warn(`Login failed. User with email ${email} not found.`);
@@ -94,7 +100,8 @@ const login = async (req, res, next) => {
     if (!user.isVerified) {
       logger.warn(`Login attempt failed for ${email}. Account not verified.`);
       return res.status(403).json({
-        message: "Account not verified. Please verify your account before logging in.",
+        message:
+          "Account not verified. Please verify your account before logging in.",
       });
     }
 
@@ -135,4 +142,109 @@ const login = async (req, res, next) => {
   }
 };
 
-module.exports = { register, verifyEmail, login };
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      logger.warn(`Forgot password attempt failed. User with email ${email} not found.`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const resetToken = jwt.sign({ userId: user._id }, process.env.RESET_PASSWORD_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+    const emailText = `To reset your password, please click the link below: \n\n ${resetUrl}`;
+
+    await sendMail(user.email, "Password Reset", null, {}, emailText);
+    logger.info(`Password reset email sent to ${user.email}`);
+    res.status(200).json({ message: "Password reset email sent." });
+  } catch (err) {
+    logger.error(`Error in forgotPassword: ${err.message}`);
+    next(err);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    const { newPassword } = req.body;
+
+    let decodedToken;
+    try {
+      decodedToken = jwt.verify(token, process.env.RESET_PASSWORD_SECRET);
+    } catch (error) {
+      logger.warn(`Invalid or expired reset token`);
+      return res.status(400).json({ message: "Invalid or expired token." });
+    }
+
+    const user = await userModel.findOne({ _id: decodedToken.userId });
+    if (!user) {
+      logger.warn(`Reset password failed. User not found.`);
+      return res.status(400).json({ message: "User not found." });
+    }
+
+    // Şifreyi hash'liyoruz (eksik kısım)
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    logger.info(`Password reset successfully for user ${user.email}`);
+    res.status(200).json({ message: "Password has been reset." });
+  } catch (err) {
+    logger.error(`Error in resetPassword: ${err.message}`);
+    next(err);
+  }
+};
+
+const logout = async (req, res, next) => {
+  try {
+    res.clearCookie("accessToken", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
+
+    logger.info(`User logged out successfully`);
+    res.status(200).json({ message: "Logout successful" });
+  } catch (err) {
+    logger.error(`Error in logout: ${err.message}`);
+    next(err);
+  }
+};
+
+const refreshToken = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+
+    if (!refreshToken) {
+      logger.warn(`Refresh token missing`);
+      return res.status(401).json({ message: "Refresh Token is Missing" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET_TOKEN);
+    } catch (error) {
+      logger.warn(`Invalid or expired refresh token: ${error.message}`);
+      return res.status(401).json({ message: "Invalid or Expired Refresh Token" });
+    }
+
+    const user = await userModel.findById(decoded.userId);
+    if (!user) {
+      logger.warn(`User not found for refresh token`);
+      return res.status(404).json({ message: "User Not Found" });
+    }
+
+    const accessToken = generateAccessToken(user);
+    res.cookie("accessToken", accessToken, cookieOptions);
+
+    logger.info(`Access token refreshed successfully for user ${user.email}`);
+    res.status(200).json({ message: "Access Token refreshed successfully" });
+  } catch (err) {
+    logger.error(`Error in refreshToken: ${err.message}`);
+    next(err);
+  }
+};
+
+module.exports = { register, verifyEmail, login, logout, refreshToken ,forgotPassword,resetPassword};
