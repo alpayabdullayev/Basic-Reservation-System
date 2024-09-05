@@ -1,2 +1,6 @@
 .env
 node_modules
+combined.log
+errors.log
+requests.log
+warn.log
