@@ -1,4 +1,5 @@
 const venueModel = require("../model/venue.model");
+const logger = require("../utils/logger");
 
 const create = async (req, res, next) => {
   const currentUser = req.user;
