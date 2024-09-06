@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: express-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - CONNECTION_URL=${CONNECTION_URL}  # Using .env variables for MongoDB
+      - REDIS_URL=redis://redis-server:6379
+      - ACCESS_SECRET_TOKEN=${ACCESS_SECRET_TOKEN}
+      - REFRESH_SECRET_TOKEN=${REFRESH_SECRET_TOKEN}
+      - RESET_PASSWORD_SECRET=${RESET_PASSWORD_SECRET}
+      - EMAIL=${EMAIL}
+      - PASS=${PASS}
+      - CLIENT_URL=${CLIENT_URL}
+
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

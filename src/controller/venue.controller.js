@@ -1,4 +1,5 @@
 const venueModel = require("../model/venue.model");
+const redisClient = require("../redis/redis-client");
 const logger = require("../utils/logger");
 
 /**
@@ -75,7 +76,6 @@ const logger = require("../utils/logger");
 
 const create = async (req, res, next) => {
   const currentUser = req.user;
-  // !  console.log("currentUser", currentUser);
 
   try {
     const venueData = {
@@ -85,13 +85,19 @@ const create = async (req, res, next) => {
 
     const result = new venueModel(venueData);
     await result.save();
-    logger.info(`Venue created by user ${currentUser.userId}`);
+
+    await redisClient.del('venues:*'); 
+
+    // Loglama
+    logger.info(`Venue created by user ${currentUser.userId} and cache cleared`);
+
     res.status(200).json(result);
   } catch (error) {
     logger.error(`Error creating venue: ${error.message}`);
     next(error);
   }
 };
+
 
 
 /**
@@ -183,7 +189,20 @@ const create = async (req, res, next) => {
 const find = async (req, res, next) => {
   const { page = 1, limit = 10, location = "" } = req.query;
 
+
+  const cacheKey = `venues:${page}:${limit}:${location}`;
+
   try {
+
+    const cachedData = await redisClient.get(cacheKey);
+
+    if (cachedData) {
+      logger.info(`Venues fetched from cache with key ${cacheKey}`);
+      console.log("Cache", JSON.parse(cachedData)); 
+      return res.status(200).json(JSON.parse(cachedData));
+    }
+
+   
     const pageNumber = parseInt(page, 10);
     const pageSize = parseInt(limit, 10);
 
@@ -198,21 +217,27 @@ const find = async (req, res, next) => {
       .skip((pageNumber - 1) * pageSize)
       .limit(pageSize);
 
-    logger.info(`Venues fetched for page ${pageNumber} with limit ${pageSize}`);
-
-    res.status(200).json({
+    const responseData = {
       docs: venues,
       totalDocs: totalCount,
       limit: pageSize,
       page: pageNumber,
       totalPages: Math.ceil(totalCount / pageSize),
-    });
+    };
+
+
+    logger.info(`Venues fetched from MongoDB for key ${cacheKey}`);
+    console.log("MongoDB", responseData); 
+
+    
+    await redisClient.set(cacheKey, JSON.stringify(responseData), { EX: 36000 });
+
+    res.status(200).json(responseData);
   } catch (error) {
     logger.error(`Error fetching venues: ${error.message}`);
     next(error);
   }
 };
-
 /**
  * @swagger
  * /venues/{id}:
@@ -315,10 +340,12 @@ const update = async (req, res, next) => {
     }
 
     const updatedVenue = await venueModel.findByIdAndUpdate(id, req.body, {
-      new: true,
+      new: true, 
     });
 
-    logger.info(`Venue with id ${id} updated successfully`);
+    await redisClient.del('venues:*'); 
+
+    logger.info(`Venue with id ${id} updated successfully and cache cleared`);
     res.status(200).json(updatedVenue);
   } catch (error) {
     logger.error(`Error updating venue: ${error.message}`);
@@ -469,7 +496,9 @@ const deleteVenue = async (req, res, next) => {
       return res.status(404).json({ message: "Venue not found" });
     }
 
-    logger.info(`Venue with id ${id} deleted successfully`);
+    await redisClient.del('venues:*');
+
+    logger.info(`Venue with id ${id} deleted successfully and cache cleared`);
     res.status(200).json({ message: "Venue deleted successfully" });
   } catch (error) {
     logger.error(`Error deleting venue: ${error.message}`);
