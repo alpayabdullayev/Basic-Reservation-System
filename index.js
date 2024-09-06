@@ -9,7 +9,7 @@ const winston = require("winston");
 const expressWinston = require("express-winston");
 const logger = require("./src/utils/logger");
 const { setupSwagger } = require("./src/config/swagger");
-const redisClient = require("./src/redis/redis-client");
+
 
 
 dotenv.config();
