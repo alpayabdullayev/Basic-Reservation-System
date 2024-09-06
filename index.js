@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const winston = require("winston");
 const expressWinston = require("express-winston");
 const logger = require("./src/utils/logger");
+const { setupSwagger } = require("./src/config/swagger");
 
 dotenv.config();
 const app = express();
@@ -35,6 +36,8 @@ app.use(
   })
 );
 
+app.use('/docs', express.static('path/to/swagger-ui'));
+
 app.use(router);
 
 app.use(errorHandler);
@@ -47,8 +50,10 @@ app.use(
   })
 );
 
-const PORT = process.env.PORT;
 
+
+const PORT = process.env.PORT;
+setupSwagger(app);
 app.listen(PORT, async () => {
   await connectToMongoDB();
   logger.info("Server is running");

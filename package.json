@@ -24,6 +24,8 @@
     "nodemon": "^3.1.4",
     "redis": "^4.7.0",
     "slugify": "^1.6.6",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^10.0.0",
     "winston": "^3.14.2"
   },

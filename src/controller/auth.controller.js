@@ -8,6 +8,76 @@ const {
 const { cookieOptions } = require("../utils/cookieOptions");
 const logger = require("../utils/logger");
 
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Authentication
+ *     description: Operations related to user registration and authentication
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Register a new user
+ *     description: Registers a new user, sends a verification email, and returns user details.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: "example_user"
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *               password:
+ *                 type: string
+ *                 example: "password123"
+ *     responses:
+ *       201:
+ *         description: User created successfully. A verification email has been sent.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User created successfully"
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     isActive:
+ *                       type: boolean
+ *                     isVerified:
+ *                       type: boolean
+ *       409:
+ *         description: User already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User already exists"
+ *       500:
+ *         description: Internal server error
+ */
+
 const register = async (req, res, next) => {
   try {
     const { username, password, email } = req.body;
@@ -39,6 +109,51 @@ const register = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Authentication
+ *     description: Operations related to user registration and authentication
+ */
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   get:
+ *     tags:
+ *       - Authentication
+ *     summary: Verify user email
+ *     description: Verifies the user's email using a token sent via email.
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         required: true
+ *         description: Email verification token
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Email verified successfully"
+ *                 accessToken:
+ *                   type: string
+ *                   example: "your_access_token_here"
+ *                 refreshToken:
+ *                   type: string
+ *                   example: "your_refresh_token_here"
+ *       400:
+ *         description: Invalid or already verified token
+ *       500:
+ *         description: Internal server error
+ */
 
 const verifyEmail = async (req, res, next) => {
   try {
@@ -80,6 +195,77 @@ const verifyEmail = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Authentication
+ *     description: Operations related to user management
+ */
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Login a user
+ *     description: Authenticates a user and returns access and refresh tokens. Tokens are also set in HTTP-only cookies.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *               password:
+ *                 type: string
+ *                 example: "password123"
+ *     responses:
+ *       200:
+ *         description: Login successful. Returns user details, access token, and refresh token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful"
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     isActive:
+ *                       type: boolean
+ *                     isVerified:
+ *                       type: boolean
+ *                 accessToken:
+ *                   type: string
+ *                 refreshToken:
+ *                   type: string
+ *       400:
+ *         description: Incorrect email or password
+ *       403:
+ *         description: Account not verified or inactive
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Account not verified. Please verify your account before logging in."
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -142,6 +328,56 @@ const login = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * tags:
+ *   - name: Authentication
+ *     description: Operations related to user registration and authentication
+ */
+
+/**
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Request password reset
+ *     description: Sends a password reset email to the user with a reset token link.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: Password reset email sent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Password reset email sent."
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal server error
+ */
+
 const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
@@ -168,6 +404,48 @@ const forgotPassword = async (req, res, next) => {
   }
 };
 
+
+/**
+ * @swagger
+ * tags:
+ *   - name: Authentication
+ *     description: Operations related to user registration and authentication
+ */
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     tags:
+ *       - Authentication
+ *     summary: Reset user's password
+ *     description: Allows the user to reset their password using a token sent to their email.
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Password reset token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *                 example: "newPassword123"
+ *                 description: The new password to be set
+ *     responses:
+ *       200:
+ *         description: Password has been reset successfully
+ *       400:
+ *         description: Invalid or expired token, or user not found
+ *       500:
+ *         description: Internal server error
+ */
 const resetPassword = async (req, res, next) => {
   try {
     const { token } = req.query;

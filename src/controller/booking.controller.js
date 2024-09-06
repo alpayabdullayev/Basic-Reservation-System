@@ -189,4 +189,6 @@ const deleteBooking = async (req, res, next) => {
   }
 };
 
+
+
 module.exports = { createBooking ,getBookingsByUserId,deleteBooking,getBookingsAdmin};
