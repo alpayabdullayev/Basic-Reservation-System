@@ -137,6 +137,7 @@ This project is Dockerized and includes Redis for session management and caching
 
 Here's a summary of the services defined in the docker-compose.yml file:
 
+```yaml
 version: '3.8'
 
 services:
