@@ -114,3 +114,61 @@ POST request creates a new reservations with the request body:
         "time" : "18:00",
         "numberOfPeople" : 4
     }   
+
+
+## Docker and Redis Setup
+
+## Prerequisites
+
+- [Docker](#docker)
+- [Docker Compose](#dockerCompose)
+
+This project is Dockerized and includes Redis for session management and caching. To run the application in a containerized environment with Redis support, follow the steps below:
+
+    1. Ensure Docker and Docker Compose are installed on your system.
+    2. Build and start the application with Docker: => docker-compose up --build
+    3. To stop the application, run => docker-compose down
+    4. npm install
+    5. npm run start
+    6. Finally we are ready to begin, so enter 'npm run start'
+
+
+## Docker Compose File
+
+Here's a summary of the services defined in the docker-compose.yml file:
+
+version: '3.8'
+
+services:
+  app:
+    container_name: express-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - CONNECTION_URL=${CONNECTION_URL}
+      - REDIS_URL=redis://redis-server:6379
+      - ACCESS_SECRET_TOKEN=${ACCESS_SECRET_TOKEN}
+      - REFRESH_SECRET_TOKEN=${REFRESH_SECRET_TOKEN}
+      - RESET_PASSWORD_SECRET=${RESET_PASSWORD_SECRET}
+      - EMAIL=${EMAIL}
+      - PASS=${PASS}
+      - CLIENT_URL=${CLIENT_URL}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:alpine"
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+
+networks:
+  app-network:
+    driver: bridge
