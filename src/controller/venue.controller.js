@@ -88,7 +88,7 @@ const create = async (req, res, next) => {
 
     await redisClient.del('venues:*'); 
 
-    // Loglama
+
     logger.info(`Venue created by user ${currentUser.userId} and cache cleared`);
 
     res.status(200).json(result);

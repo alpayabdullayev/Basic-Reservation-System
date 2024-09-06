@@ -1,5 +1,5 @@
 const request = require("supertest");
-const index = require("../index"); // Uygulama dosyanızı buradan import edin
+const index = require("../index"); 
 
 describe("Auth Controller", () => {
   describe("POST /auth/register", () => {

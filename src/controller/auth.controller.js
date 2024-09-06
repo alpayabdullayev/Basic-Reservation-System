@@ -465,7 +465,6 @@ const resetPassword = async (req, res, next) => {
       return res.status(400).json({ message: "User not found." });
     }
 
-    // Şifreyi hash'liyoruz (eksik kısım)
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
