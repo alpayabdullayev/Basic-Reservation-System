@@ -3,6 +3,106 @@ const userModel = require("../model/user.model");
 const logger = require("../utils/logger");
 const sendMail = require("../utils/sendMail");
 
+
+/**
+ * @swagger
+ * /reservations:
+ *   post:
+ *     tags:
+ *       - Reservations
+ *     summary: Create a new Reservations
+ *     description: Creates a new Reservations for a user at a specified venue, time, and date. Requires user authentication.
+ *     security:
+ *       - bearerAuth: []  # Assuming JWT Bearer authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               venueId:
+ *                 type: string
+ *                 example: "64e72c4d7b5d9f1cdb123456"
+ *                 description: The ID of the venue where the booking is to be made.
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2023-09-05"
+ *                 description: The date of the booking.
+ *               time:
+ *                 type: string
+ *                 example: "18:00"
+ *                 description: Time of the booking in 'HH:mm' format.
+ *               numberOfPeople:
+ *                 type: integer
+ *                 example: 5
+ *                 description: Number of people attending.
+ *               status:
+ *                 type: string
+ *                 enum: ["pending", "approved", "rejected"]
+ *                 example: "pending"
+ *                 description: Booking status (defaults to 'pending').
+ *     responses:
+ *       201:
+ *         description: Booking created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Booking created successfully"
+ *                 booking:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "64e72c4d7b5d9f1cdb123456"
+ *                     venueId:
+ *                       type: string
+ *                       example: "64e72c4d7b5d9f1cdb123456"
+ *                     user:
+ *                       type: string
+ *                       example: "1234567890"
+ *                     date:
+ *                       type: string
+ *                       format: date
+ *                       example: "2023-09-05"
+ *                     time:
+ *                       type: string
+ *                       example: "18:00"
+ *                     numberOfPeople:
+ *                       type: integer
+ *                       example: 5
+ *                     status:
+ *                       type: string
+ *                       enum: ["pending", "approved", "rejected"]
+ *                       example: "pending"
+ *       400:
+ *         description: Bad request or conflicting booking
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Booking cannot be in the past. Please select a future date."
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error creating booking"
+ */
+
+
 const createBooking = async (req, res, next) => {
   const currentUser = req.user;
   const { date, time, venueId } = req.body;
@@ -71,6 +171,88 @@ const createBooking = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /reservations:
+ *   get:
+ *     tags:
+ *       - Reservations
+ *     summary: Get reservations for the authenticated user
+ *     description: Retrieves all reservations for the currently authenticated user. Requires user authentication.
+ *     security:
+ *       - bearerAuth: []  # JWT Bearer authentication is required
+ *     responses:
+ *       200:
+ *         description: Reservations retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   _id:
+ *                     type: string
+ *                     example: "64e72c4d7b5d9f1cdb123456"
+ *                   venueId:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "64e72c4d7b5d9f1cdb123456"
+ *                       name:
+ *                         type: string
+ *                         example: "Sample Venue"
+ *                       location:
+ *                         type: string
+ *                         example: "123 Main Street"
+ *                   user:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                         example: "1234567890"
+ *                       username:
+ *                         type: string
+ *                         example: "johndoe"
+ *                       email:
+ *                         type: string
+ *                         example: "johndoe@example.com"
+ *                   date:
+ *                     type: string
+ *                     format: date
+ *                     example: "2023-09-05"
+ *                   time:
+ *                     type: string
+ *                     example: "18:00"
+ *                   numberOfPeople:
+ *                     type: integer
+ *                     example: 5
+ *                   status:
+ *                     type: string
+ *                     enum: ["pending", "approved", "rejected"]
+ *                     example: "pending"
+ *       404:
+ *         description: No reservations found for this user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "No reservations found for this user."
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error fetching reservations"
+ */
 const getBookingsByUserId = async (req, res, next) => {
   const userId = req.user.userId; 
 
@@ -157,6 +339,65 @@ const getBookingsAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   delete:
+ *     tags:
+ *       - Reservations
+ *     summary: Delete a reservation
+ *     description: Deletes a reservation by its ID. Only the user who made the reservation or an admin can delete the reservation.
+ *     security:
+ *       - bearerAuth: []  # JWT Bearer authentication is required
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the reservation to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reservation deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Reservation deleted successfully."
+ *       403:
+ *         description: Forbidden - User does not have permission to delete the reservation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "You do not have permission to delete this reservation."
+ *       404:
+ *         description: Reservation not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Reservation not found."
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error deleting reservation"
+ */
 const deleteBooking = async (req, res, next) => {
   const user = req.user;
   const bookingId = req.params.id;
